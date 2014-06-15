@@ -1,28 +1,40 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Timers;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace Raywaster.Client.WPF
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
+        private Renderer renderer;
+        private WriteableBitmap renderTargetSource;
+        private Timer updateTimer;
+
         public MainWindow()
         {
             InitializeComponent();
+
+            renderer = new Renderer(320, 240);
+            renderTargetSource = new WriteableBitmap(320, 240, 96, 96, PixelFormats.Rgb24, null);
+            this.RenderTarget.Source = renderTargetSource;
+
+            this.updateTimer = new Timer(1.0 / 30.0);
+            this.updateTimer.Elapsed += updateTimer_Elapsed;
+            this.updateTimer.Start();
+        }
+
+        void updateTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+                {
+                    this.renderer.Update();
+                    this.renderer.Draw();
+
+                    this.renderTargetSource.Lock();
+                    this.renderTargetSource.WritePixels(new Int32Rect(0, 0, 320, 240), renderer.Framebuffer, 320 * 3, 0);
+                    this.renderTargetSource.Unlock();
+                });
         }
     }
 }
